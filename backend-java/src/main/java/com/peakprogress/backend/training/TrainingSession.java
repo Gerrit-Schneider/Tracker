@@ -47,6 +47,18 @@ public class TrainingSession {
         this.notes = notes;
     }
 
+public void update(
+        TrainingType type,
+        LocalDate trainingDate,
+        int durationMinutes,
+        String notes
+) {
+    this.type = type;
+    this.trainingDate = trainingDate;
+    this.durationMinutes = durationMinutes;
+    this.notes = notes;
+}
+
     public Long getId() {
         return id;
     }

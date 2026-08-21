@@ -44,4 +44,33 @@ public class TrainingSessionService {
                 .map(TrainingSessionResponse::from)
                 .toList();
     }
+@Transactional
+public void delete(Long id) {
+    TrainingSession session = repository.findById(id)
+            .orElseThrow(
+                    () -> new TrainingSessionNotFoundException(id)
+            );
+
+    repository.delete(session);
+}
+
+@Transactional
+public TrainingSessionResponse update(
+        Long id,
+        UpdateTrainingSessionRequest request
+) {
+    TrainingSession session = repository.findById(id)
+            .orElseThrow(
+                    () -> new TrainingSessionNotFoundException(id)
+            );
+
+    session.update(
+            request.type(),
+            request.trainingDate(),
+            request.durationMinutes(),
+            request.notes()
+    );
+
+    return TrainingSessionResponse.from(session);
+}
 }
