@@ -1,8 +1,16 @@
-import { useEffect, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from 'react'
 import {
   deleteTrainingSession,
   getTrainingSessions,
 } from './api/trainingSessions'
+import {
+  getAnalyticsSummary,
+  type AnalyticsSummary,
+} from './api/analytics'
 import { TrainingSessionForm } from './components/TrainingSessionForm'
 import type {
   TrainingSession,
@@ -16,10 +24,31 @@ const typeLabels: Record<TrainingType, string> = {
   STRENGTH: 'Krafttraining',
 }
 
+const trainingTypes: TrainingType[] = [
+  'RUNNING',
+  'BOULDERING',
+  'STRENGTH',
+]
+
 function formatDate(date: string): string {
   return new Intl.DateTimeFormat('de-DE').format(
     new Date(`${date}T00:00:00`),
   )
+}
+
+function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+
+  if (hours === 0) {
+    return `${remainingMinutes} Min.`
+  }
+
+  if (remainingMinutes === 0) {
+    return `${hours} Std.`
+  }
+
+  return `${hours} Std. ${remainingMinutes} Min.`
 }
 
 function App() {
@@ -29,6 +58,30 @@ function App() {
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [editingSession, setEditingSession] =
     useState<TrainingSession | null>(null)
+
+  const [analytics, setAnalytics] =
+    useState<AnalyticsSummary | null>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(true)
+  const [analyticsError, setAnalyticsError] =
+    useState<string | null>(null)
+
+  const loadAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true)
+    setAnalyticsError(null)
+
+    try {
+      const result = await getAnalyticsSummary()
+      setAnalytics(result)
+    } catch (caughtError) {
+      setAnalyticsError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Analytics konnten nicht geladen werden.',
+      )
+    } finally {
+      setAnalyticsLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     async function loadSessions() {
@@ -47,7 +100,8 @@ function App() {
     }
 
     void loadSessions()
-  }, [])
+    void loadAnalytics()
+  }, [loadAnalytics])
 
   function handleSessionCreated(session: TrainingSession) {
     setSessions((currentSessions) =>
@@ -55,6 +109,8 @@ function App() {
         second.trainingDate.localeCompare(first.trainingDate),
       ),
     )
+
+    void loadAnalytics()
   }
 
   function handleSessionUpdated(updatedSession: TrainingSession) {
@@ -71,6 +127,7 @@ function App() {
     )
 
     setEditingSession(null)
+    void loadAnalytics()
   }
 
   async function handleSessionDeleted(id: number) {
@@ -95,6 +152,8 @@ function App() {
       setEditingSession((currentSession) =>
         currentSession?.id === id ? null : currentSession,
       )
+
+      void loadAnalytics()
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -123,6 +182,80 @@ function App() {
         onUpdated={handleSessionUpdated}
         onCancelEdit={() => setEditingSession(null)}
       />
+
+      <section className="analytics-section">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Python Analytics</p>
+            <h2>Deine Statistiken</h2>
+          </div>
+
+          <button
+            className="refresh-button"
+            type="button"
+            disabled={analyticsLoading}
+            onClick={() => void loadAnalytics()}
+          >
+            {analyticsLoading ? 'Lädt …' : 'Aktualisieren'}
+          </button>
+        </div>
+
+        {analyticsLoading && !analytics && (
+          <p className="status">
+            Statistiken werden berechnet …
+          </p>
+        )}
+
+        {analyticsError && (
+          <p className="status error">{analyticsError}</p>
+        )}
+
+        {analytics && (
+          <div className="analytics-grid">
+            <article className="metric-card">
+              <span>Einheiten insgesamt</span>
+              <strong>{analytics.totalSessions}</strong>
+            </article>
+
+            <article className="metric-card">
+              <span>Trainingszeit insgesamt</span>
+              <strong>
+                {formatDuration(analytics.totalDurationMinutes)}
+              </strong>
+            </article>
+
+            <article className="metric-card">
+              <span>Durchschnittliche Dauer</span>
+              <strong>
+                {analytics.averageDurationMinutes.toLocaleString(
+                  'de-DE',
+                  {
+                    maximumFractionDigits: 1,
+                  },
+                )}{' '}
+                Min.
+              </strong>
+            </article>
+
+            {trainingTypes.map((trainingType) => (
+              <article
+                className={`metric-card metric-${trainingType.toLowerCase()}`}
+                key={trainingType}
+              >
+                <span>{typeLabels[trainingType]}</span>
+                <strong>
+                  {analytics.sessionsByType[trainingType] ?? 0}
+                </strong>
+                <small>
+                  {formatDuration(
+                    analytics.durationByType[trainingType] ?? 0,
+                  )}
+                </small>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="dashboard">
         <div className="section-heading">
