@@ -11,10 +11,60 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U peakprogress -d peakprogress"]
+      test:
+        - CMD-SHELL
+        - pg_isready -U peakprogress -d peakprogress
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  backend:
+    image: peak-progress-backend:local
+    build:
+      context: .
+      dockerfile: backend-java/Dockerfile
+    container_name: peak-progress-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/peakprogress
+      SPRING_DATASOURCE_USERNAME: peakprogress
+      SPRING_DATASOURCE_PASSWORD: peakprogress_dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  analytics:
+    image: peak-progress-analytics:local
+    build:
+      context: .
+      dockerfile: analytics/Dockerfile
+    container_name: peak-progress-analytics
+    environment:
+      TRAINING_API_URL: http://backend:8080
+    ports:
+      - "8000:8000"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    image: peak-progress-frontend:local
+    build:
+      context: .
+      dockerfile: frontend-typescript/Dockerfile
+      args:
+        VITE_ANALYTICS_API_URL: http://localhost:8000
+    container_name: peak-progress-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+      - analytics
+    restart: unless-stopped
 
 volumes:
   postgres-data:
