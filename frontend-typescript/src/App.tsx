@@ -17,6 +17,7 @@ import type {
   TrainingType,
 } from './types/training'
 import './App.css'
+import { TrainingSessionDetails } from './components/TrainingSessionDetails'
 
 const typeLabels: Record<TrainingType, string> = {
   RUNNING: 'Laufen',
@@ -296,6 +297,7 @@ function App() {
                   <h3>{formatDate(session.trainingDate)}</h3>
 
                   {session.notes && <p>{session.notes}</p>}
+                  <TrainingSessionDetails session={session} />
                 </div>
 
                 <div className="session-actions">

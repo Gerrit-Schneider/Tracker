@@ -1,26 +1,54 @@
 package com.peakprogress.backend.training;
 
+import com.peakprogress.backend.training.bouldering.BoulderingGradeResult;
+import com.peakprogress.backend.training.bouldering.BoulderingGradeResultRepository;
+import com.peakprogress.backend.training.bouldering.BoulderingGradeResultRequest;
+import com.peakprogress.backend.training.running.RunningDetails;
+import com.peakprogress.backend.training.running.RunningDetailsRepository;
+import com.peakprogress.backend.training.running.RunningDetailsRequest;
+import com.peakprogress.backend.training.gym.StrengthExercise;
+import com.peakprogress.backend.training.gym.StrengthExerciseRepository;
+import com.peakprogress.backend.training.gym.StrengthExerciseRequest;
+import com.peakprogress.backend.training.gym.StrengthSet;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
 public class TrainingSessionService {
 
-    private final TrainingSessionRepository repository;
+    private final TrainingSessionRepository sessionRepository;
+    private final RunningDetailsRepository runningRepository;
+    private final BoulderingGradeResultRepository boulderingRepository;
+    private final StrengthExerciseRepository strengthRepository;
 
     public TrainingSessionService(
-            TrainingSessionRepository repository
+            TrainingSessionRepository sessionRepository,
+            RunningDetailsRepository runningRepository,
+            BoulderingGradeResultRepository boulderingRepository,
+            StrengthExerciseRepository strengthRepository
     ) {
-        this.repository = repository;
+        this.sessionRepository = sessionRepository;
+        this.runningRepository = runningRepository;
+        this.boulderingRepository = boulderingRepository;
+        this.strengthRepository = strengthRepository;
     }
 
     @Transactional
     public TrainingSessionResponse create(
             CreateTrainingSessionRequest request
     ) {
+        validateDetails(
+                request.type(),
+                request.runningDetails(),
+                request.boulderingResults(),
+                request.strengthExercises()
+        );
+
         TrainingSession session = new TrainingSession(
                 request.type(),
                 request.trainingDate(),
@@ -28,49 +56,260 @@ public class TrainingSessionService {
                 request.notes()
         );
 
-        return TrainingSessionResponse.from(
-                repository.save(session)
+        sessionRepository.save(session);
+
+        saveDetails(
+                session,
+                request.runningDetails(),
+                request.boulderingResults(),
+                request.strengthExercises()
         );
+
+        return createResponse(session);
     }
 
     public List<TrainingSessionResponse> findAll(
             TrainingType type
     ) {
         List<TrainingSession> sessions = type == null
-                ? repository.findAllByOrderByTrainingDateDesc()
-                : repository.findByTypeOrderByTrainingDateDesc(type);
+                ? sessionRepository.findAllByOrderByTrainingDateDesc()
+                : sessionRepository.findByTypeOrderByTrainingDateDesc(type);
 
         return sessions.stream()
-                .map(TrainingSessionResponse::from)
+                .map(this::createResponse)
                 .toList();
     }
-@Transactional
-public void delete(Long id) {
-    TrainingSession session = repository.findById(id)
-            .orElseThrow(
-                    () -> new TrainingSessionNotFoundException(id)
+
+    @Transactional
+    public TrainingSessionResponse update(
+            Long id,
+            UpdateTrainingSessionRequest request
+    ) {
+        validateDetails(
+                request.type(),
+                request.runningDetails(),
+                request.boulderingResults(),
+                request.strengthExercises()
+        );
+
+        TrainingSession session = findSession(id);
+
+        removeDetails(id);
+
+        session.update(
+                request.type(),
+                request.trainingDate(),
+                request.durationMinutes(),
+                request.notes()
+        );
+
+        saveDetails(
+                session,
+                request.runningDetails(),
+                request.boulderingResults(),
+                request.strengthExercises()
+        );
+
+        return createResponse(session);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        TrainingSession session = findSession(id);
+        sessionRepository.delete(session);
+    }
+
+    private TrainingSession findSession(Long id) {
+        return sessionRepository.findById(id)
+                .orElseThrow(
+                        () -> new TrainingSessionNotFoundException(id)
+                );
+    }
+
+    private void saveDetails(
+            TrainingSession session,
+            RunningDetailsRequest runningRequest,
+            List<BoulderingGradeResultRequest> boulderingRequests,
+            List<StrengthExerciseRequest> strengthRequests
+    ) {
+        saveRunningDetails(session, runningRequest);
+        saveBoulderingDetails(session, boulderingRequests);
+        saveStrengthDetails(session, strengthRequests);
+    }
+
+    private void saveRunningDetails(
+            TrainingSession session,
+            RunningDetailsRequest request
+    ) {
+        if (request == null) {
+            return;
+        }
+
+        RunningDetails details = new RunningDetails(
+                session,
+                request.runType(),
+                request.distanceMeters(),
+                request.elapsedSeconds(),
+                request.averageHeartRate(),
+                request.maxHeartRate()
+        );
+
+        runningRepository.save(details);
+    }
+
+    private void saveBoulderingDetails(
+            TrainingSession session,
+            List<BoulderingGradeResultRequest> requests
+    ) {
+        if (requests == null || requests.isEmpty()) {
+            return;
+        }
+
+        List<BoulderingGradeResult> results = requests.stream()
+                .map(request -> new BoulderingGradeResult(
+                        session,
+                        request.grade(),
+                        request.attemptedCount(),
+                        request.completedCount()
+                ))
+                .toList();
+
+        boulderingRepository.saveAll(results);
+    }
+
+    private void saveStrengthDetails(
+            TrainingSession session,
+            List<StrengthExerciseRequest> requests
+    ) {
+        if (requests == null || requests.isEmpty()) {
+            return;
+        }
+
+        List<StrengthExercise> exercises = new ArrayList<>();
+
+        for (int exerciseIndex = 0;
+             exerciseIndex < requests.size();
+             exerciseIndex++) {
+
+            StrengthExerciseRequest request =
+                    requests.get(exerciseIndex);
+
+            StrengthExercise exercise = new StrengthExercise(
+                    session,
+                    request.exerciseName().trim(),
+                    exerciseIndex + 1
             );
 
-    repository.delete(session);
-}
+            for (int setIndex = 0;
+                 setIndex < request.sets().size();
+                 setIndex++) {
 
-@Transactional
-public TrainingSessionResponse update(
-        Long id,
-        UpdateTrainingSessionRequest request
-) {
-    TrainingSession session = repository.findById(id)
-            .orElseThrow(
-                    () -> new TrainingSessionNotFoundException(id)
+                var setRequest = request.sets().get(setIndex);
+
+                exercise.addSet(
+                        new StrengthSet(
+                                setIndex + 1,
+                                setRequest.repetitions(),
+                                setRequest.weightKg()
+                        )
+                );
+            }
+
+            exercises.add(exercise);
+        }
+
+        strengthRepository.saveAll(exercises);
+    }
+
+    private void removeDetails(Long sessionId) {
+        runningRepository.findById(sessionId)
+                .ifPresent(runningRepository::delete);
+
+        boulderingRepository.deleteAllBySession_Id(sessionId);
+        strengthRepository.deleteAllBySession_Id(sessionId);
+
+        runningRepository.flush();
+        boulderingRepository.flush();
+        strengthRepository.flush();
+    }
+
+    private TrainingSessionResponse createResponse(
+            TrainingSession session
+    ) {
+        RunningDetails runningDetails =
+                runningRepository.findById(session.getId())
+                        .orElse(null);
+
+        List<BoulderingGradeResult> boulderingResults =
+                boulderingRepository
+                        .findAllBySession_Id(session.getId())
+                        .stream()
+                        .sorted(
+                                Comparator.comparingInt(
+                                        result ->
+                                                result.getGrade().ordinal()
+                                )
+                        )
+                        .toList();
+
+        List<StrengthExercise> strengthExercises =
+                strengthRepository
+                        .findAllBySession_IdOrderByExerciseOrderAsc(
+                                session.getId()
+                        );
+
+        return TrainingSessionResponse.from(
+                session,
+                runningDetails,
+                boulderingResults,
+                strengthExercises
+        );
+    }
+
+    private void validateDetails(
+            TrainingType type,
+            RunningDetailsRequest runningDetails,
+            List<BoulderingGradeResultRequest> boulderingResults,
+            List<StrengthExerciseRequest> strengthExercises
+    ) {
+        boolean hasBoulderingDetails =
+                boulderingResults != null
+                        && !boulderingResults.isEmpty();
+
+        boolean hasStrengthDetails =
+                strengthExercises != null
+                        && !strengthExercises.isEmpty();
+
+        if (type != TrainingType.RUNNING && runningDetails != null) {
+            throw new InvalidTrainingDetailsException(
+                    "Laufdetails sind nur bei RUNNING erlaubt."
             );
+        }
 
-    session.update(
-            request.type(),
-            request.trainingDate(),
-            request.durationMinutes(),
-            request.notes()
-    );
+        if (type != TrainingType.BOULDERING
+                && hasBoulderingDetails) {
+            throw new InvalidTrainingDetailsException(
+                    "Bouldering-Details sind nur bei BOULDERING erlaubt."
+            );
+        }
 
-    return TrainingSessionResponse.from(session);
-}
+        if (type != TrainingType.STRENGTH && hasStrengthDetails) {
+            throw new InvalidTrainingDetailsException(
+                    "Kraftübungen sind nur bei STRENGTH erlaubt."
+            );
+        }
+
+        if (hasBoulderingDetails) {
+            long distinctGrades = boulderingResults.stream()
+                    .map(BoulderingGradeResultRequest::grade)
+                    .distinct()
+                    .count();
+
+            if (distinctGrades != boulderingResults.size()) {
+                throw new InvalidTrainingDetailsException(
+                        "Jeder Bouldering-Grad darf nur einmal vorkommen."
+                );
+            }
+        }
+    }
 }

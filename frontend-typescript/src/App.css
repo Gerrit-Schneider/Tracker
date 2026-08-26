@@ -492,3 +492,287 @@ button:focus-visible {
     justify-content: flex-start;
   }
 }
+
+.detail-panel {
+  grid-column: 1 / -1;
+  margin: 4px 0;
+  padding: 22px;
+  border: 1px solid #d9e2da;
+  border-radius: 18px;
+  background: #f8fbf9;
+}
+
+.detail-panel legend {
+  padding: 0 8px;
+  color: #244d35;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.time-fields {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.time-fields > span {
+  grid-column: 1 / -1;
+  color: #405047;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.calculated-value {
+  width: fit-content;
+  margin: 18px 0 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  color: #2258a5;
+  background: #edf4ff;
+  font-weight: 800;
+}
+
+.detail-hint {
+  margin: 0 0 16px;
+  color: #66756d;
+}
+
+.repeating-list,
+.exercise-list,
+.set-list {
+  display: grid;
+  gap: 14px;
+}
+
+.repeating-row {
+  display: grid;
+  align-items: end;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #d9e2dc;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.bouldering-row {
+  grid-template-columns:
+    minmax(100px, 0.7fr)
+    minmax(100px, 1fr)
+    minmax(100px, 1fr)
+    auto;
+}
+
+.session-form .add-detail-button {
+  margin-top: 16px;
+}
+
+.exercise-editor {
+  padding: 18px;
+  border: 1px solid #d9e2dc;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.exercise-heading {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.exercise-heading label {
+  flex: 1;
+}
+
+.set-row {
+  display: grid;
+  grid-template-columns:
+    auto
+    minmax(120px, 1fr)
+    minmax(180px, 1fr)
+    auto;
+  align-items: end;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f3f7f4;
+}
+
+.set-row strong {
+  align-self: center;
+  color: #405047;
+  white-space: nowrap;
+}
+
+.exercise-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.exercise-footer span {
+  color: #286441;
+  font-weight: 800;
+}
+
+.session-form .remove-detail-button {
+  padding: 9px 12px;
+  border: 1px solid #e5bcbc;
+  color: #a22828;
+  background: #fff5f5;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.session-form .remove-detail-button:hover {
+  background: #ffe5e5;
+}
+
+.session-form .remove-detail-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 760px) {
+  .detail-panel {
+    padding: 17px;
+  }
+
+  .detail-grid,
+  .time-fields,
+  .bouldering-row,
+  .set-row {
+    grid-template-columns: 1fr;
+  }
+
+  .exercise-heading,
+  .exercise-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .session-form .remove-detail-button {
+    width: 100%;
+  }
+}
+
+.session-details {
+  margin-top: 16px;
+}
+
+.running-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.running-summary > div {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f3f7f4;
+}
+
+.running-summary span {
+  color: #66756d;
+  font-size: 0.75rem;
+}
+
+.running-summary strong {
+  color: #26372d;
+  font-size: 0.9rem;
+}
+
+.bouldering-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.grade-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border: 1px solid #d8c9eb;
+  border-radius: 10px;
+  color: #563483;
+  background: #f8f3ff;
+}
+
+.grade-result strong {
+  font-size: 1rem;
+}
+
+.grade-result span {
+  font-size: 0.8rem;
+}
+
+.strength-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.exercise-summary {
+  padding: 13px;
+  border-radius: 12px;
+  background: #fff7ed;
+}
+
+.exercise-summary-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 9px;
+}
+
+.exercise-summary-heading strong {
+  color: #633d17;
+}
+
+.exercise-summary-heading span {
+  color: #8a5a25;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.set-summary-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.set-summary {
+  padding: 5px 8px;
+  border-radius: 7px;
+  color: #68451f;
+  background: #ffffff;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 760px) {
+  .running-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .exercise-summary-heading {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .running-summary {
+    grid-template-columns: 1fr;
+  }
+}

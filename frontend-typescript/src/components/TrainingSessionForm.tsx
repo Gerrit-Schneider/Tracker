@@ -5,10 +5,16 @@ import {
   updateTrainingSession,
 } from '../api/trainingSessions'
 import type {
+  BoulderingGradeResultInput,
   CreateTrainingSession,
+  RunningDetailsInput,
+  StrengthExerciseInput,
   TrainingSession,
   TrainingType,
 } from '../types/training'
+import { BoulderingDetailsFields } from './BoulderingDetailsFields'
+import { RunningDetailsFields } from './RunningDetailsFields'
+import { StrengthDetailsFields } from './GymDetailsFields'
 
 interface TrainingSessionFormProps {
   sessionToEdit: TrainingSession | null
@@ -24,6 +30,56 @@ function getToday(): string {
   const day = String(today.getDate()).padStart(2, '0')
 
   return `${year}-${month}-${day}`
+}
+
+function getInitialRunningDetails(
+  session: TrainingSession | null,
+): RunningDetailsInput {
+  const details = session?.runningDetails
+
+  if (!details) {
+    return {
+      runType: 'EASY',
+      distanceMeters: 0,
+      elapsedSeconds: 0,
+      averageHeartRate: null,
+      maxHeartRate: null,
+    }
+  }
+
+  return {
+    runType: details.runType,
+    distanceMeters: details.distanceMeters,
+    elapsedSeconds: details.elapsedSeconds,
+    averageHeartRate: details.averageHeartRate,
+    maxHeartRate: details.maxHeartRate,
+  }
+}
+
+function getInitialBoulderingResults(
+  session: TrainingSession | null,
+): BoulderingGradeResultInput[] {
+  return (
+    session?.boulderingResults.map((result) => ({
+      grade: result.grade,
+      attemptedCount: result.attemptedCount,
+      completedCount: result.completedCount,
+    })) ?? []
+  )
+}
+
+function getInitialStrengthExercises(
+  session: TrainingSession | null,
+): StrengthExerciseInput[] {
+  return (
+    session?.strengthExercises.map((exercise) => ({
+      exerciseName: exercise.exerciseName,
+      sets: exercise.sets.map((strengthSet) => ({
+        repetitions: strengthSet.repetitions,
+        weightKg: strengthSet.weightKg,
+      })),
+    })) ?? []
+  )
 }
 
 export function TrainingSessionForm({
@@ -42,19 +98,94 @@ export function TrainingSessionForm({
     sessionToEdit?.durationMinutes ?? 30,
   )
   const [notes, setNotes] = useState(sessionToEdit?.notes ?? '')
+
+  const [runningDetails, setRunningDetails] =
+    useState<RunningDetailsInput>(
+      getInitialRunningDetails(sessionToEdit),
+    )
+
+  const [boulderingResults, setBoulderingResults] = useState<
+    BoulderingGradeResultInput[]
+  >(getInitialBoulderingResults(sessionToEdit))
+
+  const [strengthExercises, setStrengthExercises] = useState<
+    StrengthExerciseInput[]
+  >(getInitialStrengthExercises(sessionToEdit))
+
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function validateDetails(): string | null {
+    if (type === 'RUNNING') {
+      if (runningDetails.distanceMeters <= 0) {
+        return 'Bitte gib eine gültige Laufdistanz ein.'
+      }
+
+      if (runningDetails.elapsedSeconds <= 0) {
+        return 'Bitte gib eine gültige Laufzeit ein.'
+      }
+
+      if (
+        runningDetails.averageHeartRate !== null &&
+        runningDetails.maxHeartRate !== null &&
+        runningDetails.maxHeartRate <
+          runningDetails.averageHeartRate
+      ) {
+        return 'Die maximale Herzfrequenz darf nicht niedriger als der Durchschnitt sein.'
+      }
+    }
+
+    if (
+      type === 'BOULDERING' &&
+      boulderingResults.length === 0
+    ) {
+      return 'Bitte füge mindestens einen Bouldergrad hinzu.'
+    }
+
+    if (
+      type === 'STRENGTH' &&
+      strengthExercises.length === 0
+    ) {
+      return 'Bitte füge mindestens eine Kraftübung hinzu.'
+    }
+
+    return null
+  }
+
+  function resetDetails() {
+    setRunningDetails(
+      getInitialRunningDetails(null),
+    )
+    setBoulderingResults([])
+    setStrengthExercises([])
+  }
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault()
-    setSubmitting(true)
     setError(null)
+
+    const validationError = validateDetails()
+
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setSubmitting(true)
 
     const request: CreateTrainingSession = {
       type,
       trainingDate,
       durationMinutes,
       notes: notes.trim(),
+      runningDetails:
+        type === 'RUNNING' ? runningDetails : null,
+      boulderingResults:
+        type === 'BOULDERING' ? boulderingResults : [],
+      strengthExercises:
+        type === 'STRENGTH' ? strengthExercises : [],
     }
 
     try {
@@ -66,11 +197,13 @@ export function TrainingSessionForm({
 
         onUpdated(updatedSession)
       } else {
-        const createdSession = await createTrainingSession(request)
+        const createdSession =
+          await createTrainingSession(request)
 
         onCreated(createdSession)
         setNotes('')
         setDurationMinutes(30)
+        resetDetails()
       }
     } catch (caughtError) {
       setError(
@@ -89,6 +222,7 @@ export function TrainingSessionForm({
         <p className="eyebrow">
           {sessionToEdit ? 'Bearbeitung' : 'Neue Einheit'}
         </p>
+
         <h2>
           {sessionToEdit
             ? 'Training bearbeiten'
@@ -101,9 +235,10 @@ export function TrainingSessionForm({
           Trainingsart
           <select
             value={type}
-            onChange={(event) =>
+            onChange={(event) => {
               setType(event.target.value as TrainingType)
-            }
+              setError(null)
+            }}
           >
             <option value="RUNNING">Laufen</option>
             <option value="BOULDERING">Bouldern</option>
@@ -118,7 +253,9 @@ export function TrainingSessionForm({
             value={trainingDate}
             max={getToday()}
             required
-            onChange={(event) => setTrainingDate(event.target.value)}
+            onChange={(event) =>
+              setTrainingDate(event.target.value)
+            }
           />
         </label>
 
@@ -135,6 +272,27 @@ export function TrainingSessionForm({
             }
           />
         </label>
+
+        {type === 'RUNNING' && (
+          <RunningDetailsFields
+            value={runningDetails}
+            onChange={setRunningDetails}
+          />
+        )}
+
+        {type === 'BOULDERING' && (
+          <BoulderingDetailsFields
+            value={boulderingResults}
+            onChange={setBoulderingResults}
+          />
+        )}
+
+        {type === 'STRENGTH' && (
+          <StrengthDetailsFields
+            value={strengthExercises}
+            onChange={setStrengthExercises}
+          />
+        )}
 
         <label className="field-wide">
           Notizen
