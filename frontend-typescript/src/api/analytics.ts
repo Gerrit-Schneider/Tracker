@@ -4,6 +4,16 @@ export interface AnalyticsSummary {
   averageDurationMinutes: number
   sessionsByType: Record<string, number>
   durationByType: Record<string, number>
+
+  totalRunningDistanceKm: number
+  averageRunningPaceSecondsPerKm: number | null
+
+  totalCompletedBoulders: number
+  completedBouldersByGrade: Record<string, number>
+
+  totalStrengthVolumeKg: number
+  strengthVolumeByExercise: Record<string, number>
+  highestVolumeExercise: string | null
 }
 
 const ANALYTICS_API_URL =

@@ -18,6 +18,7 @@ import type {
 } from './types/training'
 import './App.css'
 import { TrainingSessionDetails } from './components/TrainingSessionDetails'
+import { SportAnalytics } from './components/SportAnalytics'
 
 const typeLabels: Record<TrainingType, string> = {
   RUNNING: 'Laufen',
@@ -183,7 +184,8 @@ function App() {
         onUpdated={handleSessionUpdated}
         onCancelEdit={() => setEditingSession(null)}
       />
-
+        {analytics && <SportAnalytics analytics={analytics} />}
+        
       <section className="analytics-section">
         <div className="section-heading">
           <div>

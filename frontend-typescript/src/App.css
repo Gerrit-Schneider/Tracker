@@ -776,3 +776,106 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+.sport-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.analytics-breakdowns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.breakdown-card {
+  padding: 22px;
+  border: 1px solid #d9e2dc;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.breakdown-card h3 {
+  margin: 0 0 18px;
+  color: #26372d;
+  font-size: 1rem;
+}
+
+.breakdown-list {
+  display: grid;
+  gap: 13px;
+}
+
+.breakdown-row {
+  display: grid;
+  grid-template-columns:
+    minmax(90px, 0.8fr)
+    minmax(100px, 1fr)
+    auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.breakdown-row > strong {
+  overflow: hidden;
+  color: #405047;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breakdown-row > span {
+  color: #66756d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.breakdown-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf1ee;
+}
+
+.breakdown-bar {
+  display: block;
+  min-width: 4px;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.bouldering-bar {
+  background: #7651a8;
+}
+
+.strength-bar {
+  background: #c8792d;
+}
+
+@media (max-width: 950px) {
+  .sport-analytics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analytics-breakdowns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .sport-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .breakdown-row {
+    grid-template-columns: minmax(80px, 1fr) 1fr;
+  }
+
+  .breakdown-row > span {
+    grid-column: 1 / -1;
+  }
+}
