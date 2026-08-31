@@ -16,13 +16,21 @@ export interface AnalyticsSummary {
   highestVolumeExercise: string | null
 }
 
+export interface AnalyticsProgressPoint {
+  trainingDate: string
+  sessionCount: number
+  totalDurationMinutes: number
+  runningDistanceKm: number
+  averageRunningPaceSecondsPerKm: number | null
+  completedBoulders: number
+  strengthVolumeKg: number
+}
+
 const ANALYTICS_API_URL =
   import.meta.env.VITE_ANALYTICS_API_URL ?? 'http://localhost:8000'
 
-export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
-  const response = await fetch(
-    `${ANALYTICS_API_URL}/api/analytics/summary`,
-  )
+async function fetchAnalytics<T>(path: string): Promise<T> {
+  const response = await fetch(`${ANALYTICS_API_URL}${path}`)
 
   if (!response.ok) {
     throw new Error(
@@ -30,5 +38,19 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
     )
   }
 
-  return response.json() as Promise<AnalyticsSummary>
+  return response.json() as Promise<T>
+}
+
+export function getAnalyticsSummary(): Promise<AnalyticsSummary> {
+  return fetchAnalytics<AnalyticsSummary>(
+    '/api/analytics/summary',
+  )
+}
+
+export function getAnalyticsProgress(): Promise<
+  AnalyticsProgressPoint[]
+> {
+  return fetchAnalytics<AnalyticsProgressPoint[]>(
+    '/api/analytics/progress',
+  )
 }

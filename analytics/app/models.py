@@ -111,7 +111,6 @@ class AnalyticsSummary(BaseModel):
     completed_boulders_by_grade: dict[str, int] = Field(
         alias="completedBouldersByGrade"
     )
-
     total_strength_volume_kg: float = Field(
         alias="totalStrengthVolumeKg"
     )
@@ -120,4 +119,24 @@ class AnalyticsSummary(BaseModel):
     )
     highest_volume_exercise: str | None = Field(
         alias="highestVolumeExercise"
+    )
+class AnalyticsProgressPoint(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    training_date: date = Field(alias="trainingDate")
+    session_count: int = Field(alias="sessionCount")
+    total_duration_minutes: int = Field(
+        alias="totalDurationMinutes"
+    )
+    running_distance_km: float = Field(
+        alias="runningDistanceKm"
+    )
+    average_running_pace_seconds_per_km: int | None = Field(
+        alias="averageRunningPaceSecondsPerKm"
+    )
+    completed_boulders: int = Field(
+        alias="completedBoulders"
+    )
+    strength_volume_kg: float = Field(
+        alias="strengthVolumeKg"
     )

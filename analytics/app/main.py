@@ -2,7 +2,8 @@ import httpx
 from fastapi import FastAPI, HTTPException
 
 from app.client import fetch_training_sessions
-from app.models import AnalyticsSummary
+from app.models import AnalyticsProgressPoint, AnalyticsSummary
+from app.progress import calculate_progress
 from app.summary import calculate_summary
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -43,3 +44,18 @@ async def get_analytics_summary() -> AnalyticsSummary:
         ) from error
 
     return calculate_summary(sessions)
+
+@app.get(
+    "/api/analytics/progress",
+    response_model=list[AnalyticsProgressPoint],
+)
+async def get_analytics_progress() -> list[AnalyticsProgressPoint]:
+    try:
+        sessions = await fetch_training_sessions()
+    except (httpx.HTTPError, ValueError) as error:
+        raise HTTPException(
+            status_code=503,
+            detail="Training backend is unavailable",
+        ) from error
+
+    return calculate_progress(sessions)

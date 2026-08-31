@@ -4,21 +4,24 @@ import {
   useState,
 } from 'react'
 import {
+  getAnalyticsProgress,
+  getAnalyticsSummary,
+  type AnalyticsProgressPoint,
+  type AnalyticsSummary,
+} from './api/analytics'
+import {
   deleteTrainingSession,
   getTrainingSessions,
 } from './api/trainingSessions'
-import {
-  getAnalyticsSummary,
-  type AnalyticsSummary,
-} from './api/analytics'
+import { ProgressCharts } from './components/ProgressCharts'
+import { SportAnalytics } from './components/SportAnalytics'
+import { TrainingSessionDetails } from './components/TrainingSessionDetails'
 import { TrainingSessionForm } from './components/TrainingSessionForm'
 import type {
   TrainingSession,
   TrainingType,
 } from './types/training'
 import './App.css'
-import { TrainingSessionDetails } from './components/TrainingSessionDetails'
-import { SportAnalytics } from './components/SportAnalytics'
 
 const typeLabels: Record<TrainingType, string> = {
   RUNNING: 'Laufen',
@@ -63,6 +66,8 @@ function App() {
 
   const [analytics, setAnalytics] =
     useState<AnalyticsSummary | null>(null)
+  const [progress, setProgress] =
+    useState<AnalyticsProgressPoint[]>([])
   const [analyticsLoading, setAnalyticsLoading] = useState(true)
   const [analyticsError, setAnalyticsError] =
     useState<string | null>(null)
@@ -72,8 +77,13 @@ function App() {
     setAnalyticsError(null)
 
     try {
-      const result = await getAnalyticsSummary()
-      setAnalytics(result)
+      const [summaryResult, progressResult] = await Promise.all([
+        getAnalyticsSummary(),
+        getAnalyticsProgress(),
+      ])
+
+      setAnalytics(summaryResult)
+      setProgress(progressResult)
     } catch (caughtError) {
       setAnalyticsError(
         caughtError instanceof Error
@@ -184,8 +194,7 @@ function App() {
         onUpdated={handleSessionUpdated}
         onCancelEdit={() => setEditingSession(null)}
       />
-        {analytics && <SportAnalytics analytics={analytics} />}
-        
+
       <section className="analytics-section">
         <div className="section-heading">
           <div>
@@ -214,49 +223,64 @@ function App() {
         )}
 
         {analytics && (
-          <div className="analytics-grid">
-            <article className="metric-card">
-              <span>Einheiten insgesamt</span>
-              <strong>{analytics.totalSessions}</strong>
-            </article>
-
-            <article className="metric-card">
-              <span>Trainingszeit insgesamt</span>
-              <strong>
-                {formatDuration(analytics.totalDurationMinutes)}
-              </strong>
-            </article>
-
-            <article className="metric-card">
-              <span>Durchschnittliche Dauer</span>
-              <strong>
-                {analytics.averageDurationMinutes.toLocaleString(
-                  'de-DE',
-                  {
-                    maximumFractionDigits: 1,
-                  },
-                )}{' '}
-                Min.
-              </strong>
-            </article>
-
-            {trainingTypes.map((trainingType) => (
-              <article
-                className={`metric-card metric-${trainingType.toLowerCase()}`}
-                key={trainingType}
-              >
-                <span>{typeLabels[trainingType]}</span>
-                <strong>
-                  {analytics.sessionsByType[trainingType] ?? 0}
-                </strong>
-                <small>
-                  {formatDuration(
-                    analytics.durationByType[trainingType] ?? 0,
-                  )}
-                </small>
+          <>
+            <div className="analytics-grid">
+              <article className="metric-card">
+                <span>Einheiten insgesamt</span>
+                <strong>{analytics.totalSessions}</strong>
               </article>
-            ))}
-          </div>
+
+              <article className="metric-card">
+                <span>Trainingszeit insgesamt</span>
+                <strong>
+                  {formatDuration(
+                    analytics.totalDurationMinutes,
+                  )}
+                </strong>
+              </article>
+
+              <article className="metric-card">
+                <span>Durchschnittliche Dauer</span>
+                <strong>
+                  {analytics.averageDurationMinutes.toLocaleString(
+                    'de-DE',
+                    {
+                      maximumFractionDigits: 1,
+                    },
+                  )}{' '}
+                  Min.
+                </strong>
+              </article>
+
+              {trainingTypes.map((trainingType) => (
+                <article
+                  className={`metric-card metric-${trainingType.toLowerCase()}`}
+                  key={trainingType}
+                >
+                  <span>{typeLabels[trainingType]}</span>
+                  <strong>
+                    {analytics.sessionsByType[trainingType] ?? 0}
+                  </strong>
+                  <small>
+                    {formatDuration(
+                      analytics.durationByType[trainingType] ?? 0,
+                    )}
+                  </small>
+                </article>
+              ))}
+            </div>
+
+            <SportAnalytics analytics={analytics} />
+
+            <div className="section-heading progress-heading">
+              <div>
+                <p className="eyebrow">Verlauf</p>
+                <h2>Fortschritt über Zeit</h2>
+              </div>
+            </div>
+
+            <ProgressCharts progress={progress} />
+          </>
         )}
       </section>
 
@@ -272,7 +296,9 @@ function App() {
           </span>
         </div>
 
-        {loading && <p className="status">Daten werden geladen …</p>}
+        {loading && (
+          <p className="status">Daten werden geladen …</p>
+        )}
 
         {error && <p className="status error">{error}</p>}
 
@@ -280,7 +306,8 @@ function App() {
           <div className="empty-state">
             <h3>Noch keine Trainingseinheiten</h3>
             <p>
-              Deine erste Einheit wartet darauf, eingetragen zu werden.
+              Deine erste Einheit wartet darauf, eingetragen zu
+              werden.
             </p>
           </div>
         )}
@@ -299,6 +326,7 @@ function App() {
                   <h3>{formatDate(session.trainingDate)}</h3>
 
                   {session.notes && <p>{session.notes}</p>}
+
                   <TrainingSessionDetails session={session} />
                 </div>
 

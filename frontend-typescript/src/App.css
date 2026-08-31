@@ -879,3 +879,6 @@ button:focus-visible {
     grid-column: 1 / -1;
   }
 }
+.progress-heading {
+  margin-top: 40px;
+}
