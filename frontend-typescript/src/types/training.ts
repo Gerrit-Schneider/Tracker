@@ -118,3 +118,22 @@ export interface CreateTrainingSession {
 }
 
 export type UpdateTrainingSession = CreateTrainingSession
+
+export interface TrainingSessionPage {
+  content: TrainingSession[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  first: boolean
+  last: boolean
+}
+
+export interface TrainingSessionSearchParams {
+  type?: TrainingType
+  from?: string
+  to?: string
+  query?: string
+  page?: number
+  size?: number
+}

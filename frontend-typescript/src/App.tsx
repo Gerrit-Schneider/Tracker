@@ -11,11 +11,16 @@ import {
 } from './api/analytics'
 import {
   deleteTrainingSession,
-  getTrainingSessions,
+  searchTrainingSessions,
 } from './api/trainingSessions'
+import { Pagination } from './components/Pagination'
 import { ProgressCharts } from './components/ProgressCharts'
 import { SportAnalytics } from './components/SportAnalytics'
 import { TrainingSessionDetails } from './components/TrainingSessionDetails'
+import {
+  TrainingSessionFilters,
+  type TrainingSessionFilterValues,
+} from './components/TrainingSessionFilters'
 import { TrainingSessionForm } from './components/TrainingSessionForm'
 import type {
   TrainingSession,
@@ -34,6 +39,15 @@ const trainingTypes: TrainingType[] = [
   'BOULDERING',
   'STRENGTH',
 ]
+
+const initialFilters: TrainingSessionFilterValues = {
+  type: '',
+  from: '',
+  to: '',
+  query: '',
+}
+
+const pageSize = 5
 
 function formatDate(date: string): string {
   return new Intl.DateTimeFormat('de-DE').format(
@@ -64,6 +78,19 @@ function App() {
   const [editingSession, setEditingSession] =
     useState<TrainingSession | null>(null)
 
+  const [filters, setFilters] =
+    useState<TrainingSessionFilterValues>({
+      ...initialFilters,
+    })
+  const [appliedFilters, setAppliedFilters] =
+    useState<TrainingSessionFilterValues>({
+      ...initialFilters,
+    })
+
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
+
   const [analytics, setAnalytics] =
     useState<AnalyticsSummary | null>(null)
   const [progress, setProgress] =
@@ -71,6 +98,44 @@ function App() {
   const [analyticsLoading, setAnalyticsLoading] = useState(true)
   const [analyticsError, setAnalyticsError] =
     useState<string | null>(null)
+
+  const loadSessions = useCallback(
+    async (
+      requestedPage: number,
+      activeFilters: TrainingSessionFilterValues,
+    ) => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const result = await searchTrainingSessions({
+          type: activeFilters.type || undefined,
+          from: activeFilters.from || undefined,
+          to: activeFilters.to || undefined,
+          query: activeFilters.query || undefined,
+          page: requestedPage,
+          size: pageSize,
+        })
+
+        setSessions(result.content)
+        setTotalPages(result.totalPages)
+        setTotalElements(result.totalElements)
+      } catch (caughtError) {
+        setSessions([])
+        setTotalPages(0)
+        setTotalElements(0)
+
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : 'Ein unbekannter Fehler ist aufgetreten.',
+        )
+      } finally {
+        setLoading(false)
+      }
+    },
+    [],
+  )
 
   const loadAnalytics = useCallback(async () => {
     setAnalyticsLoading(true)
@@ -96,49 +161,54 @@ function App() {
   }, [])
 
   useEffect(() => {
-    async function loadSessions() {
-      try {
-        const result = await getTrainingSessions()
-        setSessions(result)
-      } catch (caughtError) {
-        setError(
-          caughtError instanceof Error
-            ? caughtError.message
-            : 'Ein unbekannter Fehler ist aufgetreten.',
-        )
-      } finally {
-        setLoading(false)
-      }
-    }
+    void loadSessions(page, appliedFilters)
+  }, [appliedFilters, loadSessions, page])
 
-    void loadSessions()
+  useEffect(() => {
     void loadAnalytics()
   }, [loadAnalytics])
 
-  function handleSessionCreated(session: TrainingSession) {
-    setSessions((currentSessions) =>
-      [...currentSessions, session].sort((first, second) =>
-        second.trainingDate.localeCompare(first.trainingDate),
-      ),
-    )
+  function handleSearch() {
+    setPage(0)
+    setAppliedFilters({
+      ...filters,
+    })
+  }
+
+  function handleResetFilters() {
+    const resetFilters = {
+      ...initialFilters,
+    }
+
+    setFilters(resetFilters)
+    setAppliedFilters(resetFilters)
+    setPage(0)
+  }
+
+  function handlePageChange(newPage: number) {
+    setPage(newPage)
+
+    document
+      .getElementById('training-list')
+      ?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+  }
+
+  function handleSessionCreated() {
+    if (page === 0) {
+      void loadSessions(0, appliedFilters)
+    } else {
+      setPage(0)
+    }
 
     void loadAnalytics()
   }
 
-  function handleSessionUpdated(updatedSession: TrainingSession) {
-    setSessions((currentSessions) =>
-      currentSessions
-        .map((session) =>
-          session.id === updatedSession.id
-            ? updatedSession
-            : session,
-        )
-        .sort((first, second) =>
-          second.trainingDate.localeCompare(first.trainingDate),
-        ),
-    )
-
+  function handleSessionUpdated() {
     setEditingSession(null)
+    void loadSessions(page, appliedFilters)
     void loadAnalytics()
   }
 
@@ -157,9 +227,11 @@ function App() {
     try {
       await deleteTrainingSession(id)
 
-      setSessions((currentSessions) =>
-        currentSessions.filter((session) => session.id !== id),
-      )
+      if (sessions.length === 1 && page > 0) {
+        setPage(page - 1)
+      } else {
+        void loadSessions(page, appliedFilters)
+      }
 
       setEditingSession((currentSession) =>
         currentSession?.id === id ? null : currentSession,
@@ -284,7 +356,18 @@ function App() {
         )}
       </section>
 
-      <section className="dashboard">
+      <TrainingSessionFilters
+        filters={filters}
+        loading={loading}
+        onChange={setFilters}
+        onSearch={handleSearch}
+        onReset={handleResetFilters}
+      />
+
+      <section
+        className="dashboard"
+        id="training-list"
+      >
         <div className="section-heading">
           <div>
             <p className="eyebrow">Übersicht</p>
@@ -292,79 +375,96 @@ function App() {
           </div>
 
           <span className="session-count">
-            {sessions.length} Einheiten
+            {totalElements} Einheiten
           </span>
         </div>
 
         {loading && (
-          <p className="status">Daten werden geladen …</p>
+          <p className="status">
+            Daten werden geladen …
+          </p>
         )}
 
         {error && <p className="status error">{error}</p>}
 
         {!loading && !error && sessions.length === 0 && (
           <div className="empty-state">
-            <h3>Noch keine Trainingseinheiten</h3>
+            <h3>Keine Trainingseinheiten gefunden</h3>
             <p>
-              Deine erste Einheit wartet darauf, eingetragen zu
-              werden.
+              Passe deine Filter an oder trage eine neue Einheit
+              ein.
             </p>
           </div>
         )}
 
         {!loading && !error && sessions.length > 0 && (
-          <div className="session-list">
-            {sessions.map((session) => (
-              <article className="session-card" key={session.id}>
-                <div>
-                  <span
-                    className={`type type-${session.type.toLowerCase()}`}
-                  >
-                    {typeLabels[session.type]}
-                  </span>
-
-                  <h3>{formatDate(session.trainingDate)}</h3>
-
-                  {session.notes && <p>{session.notes}</p>}
-
-                  <TrainingSessionDetails session={session} />
-                </div>
-
-                <div className="session-actions">
-                  <strong>{session.durationMinutes} Min.</strong>
-
-                  <div className="card-buttons">
-                    <button
-                      className="edit-button"
-                      type="button"
-                      onClick={() => {
-                        setEditingSession(session)
-                        window.scrollTo({
-                          top: 0,
-                          behavior: 'smooth',
-                        })
-                      }}
+          <>
+            <div className="session-list">
+              {sessions.map((session) => (
+                <article
+                  className="session-card"
+                  key={session.id}
+                >
+                  <div>
+                    <span
+                      className={`type type-${session.type.toLowerCase()}`}
                     >
-                      Bearbeiten
-                    </button>
+                      {typeLabels[session.type]}
+                    </span>
 
-                    <button
-                      className="delete-button"
-                      type="button"
-                      disabled={deletingId === session.id}
-                      onClick={() =>
-                        void handleSessionDeleted(session.id)
-                      }
-                    >
-                      {deletingId === session.id
-                        ? 'Löscht …'
-                        : 'Löschen'}
-                    </button>
+                    <h3>{formatDate(session.trainingDate)}</h3>
+
+                    {session.notes && <p>{session.notes}</p>}
+
+                    <TrainingSessionDetails session={session} />
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
+
+                  <div className="session-actions">
+                    <strong>
+                      {session.durationMinutes} Min.
+                    </strong>
+
+                    <div className="card-buttons">
+                      <button
+                        className="edit-button"
+                        type="button"
+                        onClick={() => {
+                          setEditingSession(session)
+                          window.scrollTo({
+                            top: 0,
+                            behavior: 'smooth',
+                          })
+                        }}
+                      >
+                        Bearbeiten
+                      </button>
+
+                      <button
+                        className="delete-button"
+                        type="button"
+                        disabled={deletingId === session.id}
+                        onClick={() =>
+                          void handleSessionDeleted(session.id)
+                        }
+                      >
+                        {deletingId === session.id
+                          ? 'Löscht …'
+                          : 'Löschen'}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              totalElements={totalElements}
+              loading={loading}
+              onPageChange={handlePageChange}
+            />
+          </>
         )}
       </section>
     </main>

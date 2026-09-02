@@ -1,212 +1,267 @@
 package com.peakprogress.backend;
 
+import com.peakprogress.backend.training.TrainingSession;
 import com.peakprogress.backend.training.TrainingSessionRepository;
-import com.peakprogress.backend.training.bouldering.BoulderingGradeResultRepository;
-import com.peakprogress.backend.training.running.RunningDetailsRepository;
-import com.peakprogress.backend.training.gym.StrengthExercise;
-import com.peakprogress.backend.training.gym.StrengthExerciseRepository;
+import com.peakprogress.backend.training.TrainingType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.context.annotation.Import;
-import java.util.List;
+
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@Import(PostgresTestConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-class TrainingDetailsControllerIntegrationTest {
+@Import(PostgresTestConfiguration.class)
+class TrainingSessionControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
-    private TrainingSessionRepository sessionRepository;
-
-    @Autowired
-    private RunningDetailsRepository runningRepository;
-
-    @Autowired
-    private BoulderingGradeResultRepository boulderingRepository;
-
-    @Autowired
-    private StrengthExerciseRepository strengthRepository;
+    private TrainingSessionRepository repository;
 
     @BeforeEach
     void clearDatabase() {
-        sessionRepository.deleteAll();
+        repository.deleteAll();
     }
 
     @Test
-    void createsRunningDetailsAndCalculatesPace() throws Exception {
+    void createsAndListsTrainingSession() throws Exception {
         String requestBody = """
                 {
                     "type": "RUNNING",
                     "trainingDate": "2026-08-20",
-                    "durationMinutes": 26,
-                    "notes": "Lockerer Testlauf",
-                    "runningDetails": {
-                        "runType": "EASY",
-                        "distanceMeters": 5000,
-                        "elapsedSeconds": 1560,
-                        "averageHeartRate": 148,
-                        "maxHeartRate": 169
-                    }
+                    "durationMinutes": 30,
+                    "notes": "Lockerer Testlauf"
                 }
                 """;
 
-        mockMvc.perform(post("/api/training-sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+        mockMvc.perform(
+                        post("/api/training-sessions")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
+                )
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.runningDetails.runType")
-                        .value("EASY"))
-                .andExpect(jsonPath("$.runningDetails.distanceMeters")
-                        .value(5000))
-                .andExpect(jsonPath(
-                        "$.runningDetails.paceSecondsPerKilometer"
-                ).value(312))
-                .andExpect(jsonPath(
-                        "$.runningDetails.averageHeartRate"
-                ).value(148))
-                .andExpect(jsonPath(
-                        "$.runningDetails.maxHeartRate"
-                ).value(169));
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.type").value("RUNNING"))
+                .andExpect(
+                        jsonPath("$.durationMinutes").value(30)
+                );
 
-        assertEquals(1, runningRepository.count());
+        mockMvc.perform(get("/api/training-sessions"))
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$[0].type").value("RUNNING")
+                )
+                .andExpect(
+                        jsonPath("$[0].notes")
+                                .value("Lockerer Testlauf")
+                );
+
+        assertEquals(1, repository.count());
     }
 
     @Test
-    void createsBoulderingGradeResults() throws Exception {
+    void rejectsTrainingSessionWithZeroDuration() throws Exception {
         String requestBody = """
                 {
-                    "type": "BOULDERING",
+                    "type": "RUNNING",
                     "trainingDate": "2026-08-20",
-                    "durationMinutes": 90,
-                    "notes": "Bouldering-Test",
-                    "boulderingResults": [
-                        {
-                            "grade": "V4",
-                            "attemptedCount": 6,
-                            "completedCount": 3
-                        },
-                        {
-                            "grade": "V5",
-                            "attemptedCount": 4,
-                            "completedCount": 1
-                        }
-                    ]
+                    "durationMinutes": 0
                 }
                 """;
 
-        mockMvc.perform(post("/api/training-sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath(
-                        "$.boulderingResults.length()"
-                ).value(2))
-                .andExpect(jsonPath(
-                        "$.boulderingResults[0].grade"
-                ).value("V4"))
-                .andExpect(jsonPath(
-                        "$.boulderingResults[0].completedCount"
-                ).value(3))
-                .andExpect(jsonPath(
-                        "$.boulderingResults[1].grade"
-                ).value("V5"));
-
-        assertEquals(2, boulderingRepository.count());
-    }
-
-    @Test
-    void createsStrengthExercisesAndSets() throws Exception {
-        String requestBody = """
-                {
-                    "type": "STRENGTH",
-                    "trainingDate": "2026-08-20",
-                    "durationMinutes": 75,
-                    "notes": "Krafttraining-Test",
-                    "strengthExercises": [
-                        {
-                            "exerciseName": "Kreuzheben",
-                            "sets": [
-                                {
-                                    "repetitions": 5,
-                                    "weightKg": 120
-                                },
-                                {
-                                    "repetitions": 5,
-                                    "weightKg": 120
-                                },
-                                {
-                                    "repetitions": 4,
-                                    "weightKg": 120
-                                }
-                            ]
-                        }
-                    ]
-                }
-                """;
-
-        mockMvc.perform(post("/api/training-sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath(
-                        "$.strengthExercises.length()"
-                ).value(1))
-                .andExpect(jsonPath(
-                        "$.strengthExercises[0].exerciseName"
-                ).value("Kreuzheben"))
-                .andExpect(jsonPath(
-                        "$.strengthExercises[0].sets.length()"
-                ).value(3))
-                .andExpect(jsonPath(
-                        "$.strengthExercises[0].sets[0].repetitions"
-                ).value(5))
-                .andExpect(jsonPath(
-                        "$.strengthExercises[0].volumeKg"
-                ).value(1680.0));
-
-        List<StrengthExercise> exercises =
-                strengthRepository
-                        .findAllBySession_IdOrderByExerciseOrderAsc(
-                                sessionRepository.findAll().get(0).getId()
-                        );
-
-        assertEquals(1, exercises.size());
-        assertEquals(3, exercises.get(0).getSets().size());
-    }
-
-    @Test
-    void rejectsDetailsForWrongTrainingType() throws Exception {
-        String requestBody = """
-                {
-                    "type": "BOULDERING",
-                    "trainingDate": "2026-08-20",
-                    "durationMinutes": 60,
-                    "runningDetails": {
-                        "runType": "EASY",
-                        "distanceMeters": 5000,
-                        "elapsedSeconds": 1500
-                    }
-                }
-                """;
-
-        mockMvc.perform(post("/api/training-sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+        mockMvc.perform(
+                        post("/api/training-sessions")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
+                )
                 .andExpect(status().isBadRequest());
 
-        assertEquals(0, sessionRepository.count());
+        assertEquals(0, repository.count());
+    }
+
+    @Test
+    void deletesTrainingSession() throws Exception {
+        TrainingSession session = repository.save(
+                new TrainingSession(
+                        TrainingType.BOULDERING,
+                        LocalDate.of(2026, 8, 20),
+                        90,
+                        "Testeinheit"
+                )
+        );
+
+        mockMvc.perform(
+                        delete(
+                                "/api/training-sessions/{id}",
+                                session.getId()
+                        )
+                )
+                .andExpect(status().isNoContent());
+
+        assertEquals(0, repository.count());
+    }
+
+    @Test
+    void returnsNotFoundWhenDeletingUnknownSession()
+            throws Exception {
+        mockMvc.perform(
+                        delete(
+                                "/api/training-sessions/{id}",
+                                999999
+                        )
+                )
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void updatesTrainingSession() throws Exception {
+        TrainingSession session = repository.save(
+                new TrainingSession(
+                        TrainingType.RUNNING,
+                        LocalDate.of(2026, 8, 20),
+                        30,
+                        "Lockerer Lauf"
+                )
+        );
+
+        String requestBody = """
+                {
+                    "type": "RUNNING",
+                    "trainingDate": "2026-08-20",
+                    "durationMinutes": 45,
+                    "notes": "Schneller Dauerlauf"
+                }
+                """;
+
+        mockMvc.perform(
+                        put(
+                                "/api/training-sessions/{id}",
+                                session.getId()
+                        )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.durationMinutes").value(45)
+                )
+                .andExpect(
+                        jsonPath("$.notes")
+                                .value("Schneller Dauerlauf")
+                );
+
+        TrainingSession updatedSession = repository
+                .findById(session.getId())
+                .orElseThrow();
+
+        assertEquals(
+                45,
+                updatedSession.getDurationMinutes()
+        );
+        assertEquals(
+                "Schneller Dauerlauf",
+                updatedSession.getNotes()
+        );
+    }
+
+    @Test
+    void searchesSessionsWithFiltersAndPagination()
+            throws Exception {
+        repository.save(
+                new TrainingSession(
+                        TrainingType.RUNNING,
+                        LocalDate.of(2026, 8, 22),
+                        30,
+                        "Lockerer Lauf"
+                )
+        );
+
+        repository.save(
+                new TrainingSession(
+                        TrainingType.RUNNING,
+                        LocalDate.of(2026, 8, 21),
+                        45,
+                        "Tempolauf"
+                )
+        );
+
+        repository.save(
+                new TrainingSession(
+                        TrainingType.BOULDERING,
+                        LocalDate.of(2026, 8, 23),
+                        90,
+                        "Boulderabend"
+                )
+        );
+
+        repository.save(
+                new TrainingSession(
+                        TrainingType.RUNNING,
+                        LocalDate.of(2026, 8, 10),
+                        60,
+                        "Alter Lauf"
+                )
+        );
+
+        mockMvc.perform(
+                        get("/api/training-sessions/search")
+                                .param("type", "RUNNING")
+                                .param("from", "2026-08-20")
+                                .param("to", "2026-08-31")
+                                .param("query", "lauf")
+                                .param("page", "0")
+                                .param("size", "1")
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()").value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].notes")
+                                .value("Lockerer Lauf")
+                )
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(false));
+    }
+
+    @Test
+    void rejectsInvalidPaginationParameters() throws Exception {
+        mockMvc.perform(
+                        get("/api/training-sessions/search")
+                                .param("page", "-1")
+                )
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(
+                        get("/api/training-sessions/search")
+                                .param("size", "51")
+                )
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(
+                        get("/api/training-sessions/search")
+                                .param("from", "2026-08-31")
+                                .param("to", "2026-08-01")
+                )
+                .andExpect(status().isBadRequest());
     }
 }

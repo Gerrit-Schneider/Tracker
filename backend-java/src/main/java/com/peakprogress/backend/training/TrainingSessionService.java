@@ -12,7 +12,13 @@ import com.peakprogress.backend.training.gym.StrengthExerciseRequest;
 import com.peakprogress.backend.training.gym.StrengthSet;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
+import java.time.LocalDate;
+import java.util.Locale;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -79,6 +85,84 @@ public class TrainingSessionService {
                 .map(this::createResponse)
                 .toList();
     }
+
+public TrainingSessionPageResponse search(
+        TrainingType type,
+        LocalDate from,
+        LocalDate to,
+        String query,
+        int page,
+        int size
+) {
+    Specification<TrainingSession> specification =
+            Specification.unrestricted();
+
+    if (type != null) {
+        specification = specification.and(
+                (root, criteriaQuery, builder) ->
+                        builder.equal(
+                                root.<TrainingType>get("type"),
+                                type
+                        )
+        );
+    }
+
+    if (from != null) {
+        specification = specification.and(
+                (root, criteriaQuery, builder) ->
+                        builder.greaterThanOrEqualTo(
+                                root.<LocalDate>get("trainingDate"),
+                                from
+                        )
+        );
+    }
+
+    if (to != null) {
+        specification = specification.and(
+                (root, criteriaQuery, builder) ->
+                        builder.lessThanOrEqualTo(
+                                root.<LocalDate>get("trainingDate"),
+                                to
+                        )
+        );
+    }
+
+    if (query != null && !query.isBlank()) {
+        String searchTerm = "%"
+                + query.trim().toLowerCase(Locale.ROOT)
+                + "%";
+
+        specification = specification.and(
+                (root, criteriaQuery, builder) ->
+                        builder.like(
+                                builder.lower(
+                                        root.<String>get("notes")
+                                ),
+                                searchTerm
+                        )
+        );
+    }
+
+    PageRequest pageRequest = PageRequest.of(
+            page,
+            size,
+            Sort.by(
+                    Sort.Direction.DESC,
+                    "trainingDate"
+            ).and(
+                    Sort.by(
+                            Sort.Direction.DESC,
+                            "id"
+                    )
+            )
+    );
+
+    Page<TrainingSessionResponse> result = sessionRepository
+            .findAll(specification, pageRequest)
+            .map(this::createResponse);
+
+    return TrainingSessionPageResponse.from(result);
+}
 
     @Transactional
     public TrainingSessionResponse update(
@@ -295,7 +379,7 @@ public class TrainingSessionService {
 
         if (type != TrainingType.STRENGTH && hasStrengthDetails) {
             throw new InvalidTrainingDetailsException(
-                    "Kraftübungen sind nur bei STRENGTH erlaubt."
+                    "Kraftübungen sind nur bei Gym erlaubt."
             );
         }
 

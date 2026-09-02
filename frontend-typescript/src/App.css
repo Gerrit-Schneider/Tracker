@@ -882,3 +882,138 @@ button:focus-visible {
 .progress-heading {
   margin-top: 40px;
 }
+.filter-panel {
+  margin-bottom: 24px;
+  padding: 28px;
+  border: 1px solid #d9e2dc;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgb(34 65 45 / 8%);
+}
+
+.filter-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.filter-form label {
+  display: grid;
+  gap: 7px;
+  color: #405047;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.filter-form input,
+.filter-form select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid #cbd7cf;
+  border-radius: 10px;
+  color: #17211b;
+  background: #ffffff;
+}
+
+.filter-form input:focus,
+.filter-form select:focus {
+  border-color: #397552;
+  outline: 3px solid rgb(57 117 82 / 15%);
+}
+
+.filter-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 10px;
+}
+
+.filter-actions button {
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #286441;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.filter-actions button:hover {
+  background: #1d5033;
+}
+
+.filter-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.filter-actions .filter-reset-button {
+  border: 1px solid #cbd7cf;
+  color: #405047;
+  background: #ffffff;
+}
+
+.filter-actions .filter-reset-button:hover {
+  background: #eef3ef;
+}
+
+@media (max-width: 900px) {
+  .filter-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .filter-panel {
+    padding: 20px;
+  }
+
+  .filter-form {
+    grid-template-columns: 1fr;
+  }
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 22px;
+  color: #526159;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pagination-controls strong {
+  white-space: nowrap;
+}
+
+.pagination-controls button {
+  padding: 9px 14px;
+  border: 1px solid #cbd7cf;
+  border-radius: 9px;
+  color: #294738;
+  background: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+  background: #eef3ef;
+}
+
+.pagination-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 600px) {
+  .pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
