@@ -1017,3 +1017,283 @@ button:focus-visible {
     flex-direction: column;
   }
 }
+
+/* Persönliche Trainingsziele */
+
+#goal-form {
+  scroll-margin-top: 24px;
+}
+
+.goal-form-panel,
+.goals-section {
+  margin-bottom: 24px;
+  padding: 28px;
+  border: 1px solid #d9e2dc;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgb(34 65 45 / 8%);
+}
+
+.goal-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.goal-form label {
+  display: grid;
+  gap: 7px;
+  color: #405047;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.goal-form input,
+.goal-form select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid #cbd7cf;
+  border-radius: 10px;
+  color: #17211b;
+  background: #ffffff;
+  font: inherit;
+}
+
+.goal-form input:focus,
+.goal-form select:focus {
+  border-color: #397552;
+  outline: 3px solid rgb(57 117 82 / 15%);
+}
+
+.goal-pace-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.goal-pace-fields legend {
+  margin-bottom: 7px;
+  color: #405047;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.goal-form button {
+  width: fit-content;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #286441;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.goal-form button:hover {
+  background: #1d5033;
+}
+
+.goal-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.goal-form .secondary-button {
+  border: 1px solid #cbd7cf;
+  color: #405047;
+  background: #ffffff;
+}
+
+.goal-form .secondary-button:hover {
+  background: #eef3ef;
+}
+
+.goal-count {
+  padding: 7px 12px;
+  border-radius: 999px;
+  color: #286441;
+  background: #e7f3eb;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.goal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.goal-card {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid #d9e2dc;
+  border-radius: 18px;
+  background: #fbfdfb;
+}
+
+.goal-card.goal-completed {
+  border-color: #79b68f;
+  background: #f2fbf5;
+  box-shadow: inset 0 0 0 1px rgb(40 100 65 / 8%);
+}
+
+.goal-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.goal-card-heading h3 {
+  margin: 10px 0 0;
+  color: #17211b;
+}
+
+.goal-metric {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.goal-metric-running_distance_km,
+.goal-metric-running_pace_seconds_per_km {
+  color: #2258a5;
+  background: #eaf2ff;
+}
+
+.goal-metric-bouldering_grade {
+  color: #8a4c12;
+  background: #fff0dc;
+}
+
+.goal-metric-strength_weight_kg {
+  color: #762e83;
+  background: #f7eafa;
+}
+
+.goal-status {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #405047;
+  background: #e9eeeb;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.goal-status.completed {
+  color: #ffffff;
+  background: #286441;
+}
+
+.goal-exercise {
+  margin: -8px 0 0;
+  color: #59675f;
+  font-size: 0.9rem;
+}
+
+.goal-progress-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5ece7;
+}
+
+.goal-progress-bar {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    #4d8f66,
+    #72b88a
+  );
+  transition: width 0.4s ease;
+}
+
+.goal-completed .goal-progress-bar {
+  background: linear-gradient(
+    90deg,
+    #1f6b3d,
+    #4ca26a
+  );
+}
+
+.goal-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.goal-values div {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f0f4f1;
+}
+
+.goal-values span {
+  color: #657269;
+  font-size: 0.75rem;
+}
+
+.goal-values strong {
+  color: #17211b;
+  font-size: 1rem;
+}
+
+.goal-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 4px;
+  color: #657269;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 760px) {
+  .goal-form,
+  .goal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .goal-form-panel,
+  .goals-section {
+    padding: 20px;
+  }
+
+  .goal-card-heading,
+  .goal-card-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .goal-values {
+    grid-template-columns: 1fr;
+  }
+
+  .goal-pace-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .goal-pace-fields {
+    grid-template-columns: 1fr;
+  }
+}

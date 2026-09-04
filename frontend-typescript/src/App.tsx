@@ -10,18 +10,25 @@ import {
   type AnalyticsSummary,
 } from './api/analytics'
 import {
+  deleteTrainingGoal,
+  getTrainingGoals,
+} from './api/trainingGoals'
+import {
   deleteTrainingSession,
   searchTrainingSessions,
 } from './api/trainingSessions'
 import { Pagination } from './components/Pagination'
 import { ProgressCharts } from './components/ProgressCharts'
 import { SportAnalytics } from './components/SportAnalytics'
+import { TrainingGoalForm } from './components/TrainingGoalForm'
+import { TrainingGoalList } from './components/TrainingGoalList'
 import { TrainingSessionDetails } from './components/TrainingSessionDetails'
 import {
   TrainingSessionFilters,
   type TrainingSessionFilterValues,
 } from './components/TrainingSessionFilters'
 import { TrainingSessionForm } from './components/TrainingSessionForm'
+import type { TrainingGoal } from './types/goal'
 import type {
   TrainingSession,
   TrainingType,
@@ -82,6 +89,7 @@ function App() {
     useState<TrainingSessionFilterValues>({
       ...initialFilters,
     })
+
   const [appliedFilters, setAppliedFilters] =
     useState<TrainingSessionFilterValues>({
       ...initialFilters,
@@ -90,6 +98,15 @@ function App() {
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [totalElements, setTotalElements] = useState(0)
+
+  const [goals, setGoals] = useState<TrainingGoal[]>([])
+  const [goalsLoading, setGoalsLoading] = useState(true)
+  const [goalsError, setGoalsError] =
+    useState<string | null>(null)
+  const [deletingGoalId, setDeletingGoalId] =
+    useState<number | null>(null)
+  const [editingGoal, setEditingGoal] =
+    useState<TrainingGoal | null>(null)
 
   const [analytics, setAnalytics] =
     useState<AnalyticsSummary | null>(null)
@@ -137,6 +154,24 @@ function App() {
     [],
   )
 
+  const loadGoals = useCallback(async () => {
+    setGoalsLoading(true)
+    setGoalsError(null)
+
+    try {
+      const result = await getTrainingGoals()
+      setGoals(result)
+    } catch (caughtError) {
+      setGoalsError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Trainingsziele konnten nicht geladen werden.',
+      )
+    } finally {
+      setGoalsLoading(false)
+    }
+  }, [])
+
   const loadAnalytics = useCallback(async () => {
     setAnalyticsLoading(true)
     setAnalyticsError(null)
@@ -166,7 +201,8 @@ function App() {
 
   useEffect(() => {
     void loadAnalytics()
-  }, [loadAnalytics])
+    void loadGoals()
+  }, [loadAnalytics, loadGoals])
 
   function handleSearch() {
     setPage(0)
@@ -204,12 +240,14 @@ function App() {
     }
 
     void loadAnalytics()
+    void loadGoals()
   }
 
   function handleSessionUpdated() {
     setEditingSession(null)
     void loadSessions(page, appliedFilters)
     void loadAnalytics()
+    void loadGoals()
   }
 
   async function handleSessionDeleted(id: number) {
@@ -238,6 +276,7 @@ function App() {
       )
 
       void loadAnalytics()
+      void loadGoals()
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -246,6 +285,68 @@ function App() {
       )
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  function handleGoalCreated(createdGoal: TrainingGoal) {
+    setGoals((currentGoals) =>
+      [createdGoal, ...currentGoals].sort(
+        (first, second) => second.id - first.id,
+      ),
+    )
+  }
+
+  function handleGoalUpdated(updatedGoal: TrainingGoal) {
+    setGoals((currentGoals) =>
+      currentGoals.map((goal) =>
+        goal.id === updatedGoal.id ? updatedGoal : goal,
+      ),
+    )
+
+    setEditingGoal(null)
+  }
+
+  function handleGoalEdit(goal: TrainingGoal) {
+    setEditingGoal(goal)
+
+    document
+      .getElementById('goal-form')
+      ?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+  }
+
+  async function handleGoalDeleted(id: number) {
+    const confirmed = window.confirm(
+      'Möchtest du dieses Trainingsziel wirklich löschen?',
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setDeletingGoalId(id)
+    setGoalsError(null)
+
+    try {
+      await deleteTrainingGoal(id)
+
+      setGoals((currentGoals) =>
+        currentGoals.filter((goal) => goal.id !== id),
+      )
+
+      setEditingGoal((currentGoal) =>
+        currentGoal?.id === id ? null : currentGoal,
+      )
+    } catch (caughtError) {
+      setGoalsError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Trainingsziel konnte nicht gelöscht werden.',
+      )
+    } finally {
+      setDeletingGoalId(null)
     }
   }
 
@@ -260,11 +361,30 @@ function App() {
       </header>
 
       <TrainingSessionForm
-        key={editingSession?.id ?? 'new'}
+        key={editingSession?.id ?? 'new-session'}
         sessionToEdit={editingSession}
         onCreated={handleSessionCreated}
         onUpdated={handleSessionUpdated}
         onCancelEdit={() => setEditingSession(null)}
+      />
+
+      <div id="goal-form">
+        <TrainingGoalForm
+          key={editingGoal?.id ?? 'new-goal'}
+          goalToEdit={editingGoal}
+          onCreated={handleGoalCreated}
+          onUpdated={handleGoalUpdated}
+          onCancelEdit={() => setEditingGoal(null)}
+        />
+      </div>
+
+      <TrainingGoalList
+        goals={goals}
+        loading={goalsLoading}
+        error={goalsError}
+        deletingId={deletingGoalId}
+        onEdit={handleGoalEdit}
+        onDelete={(id) => void handleGoalDeleted(id)}
       />
 
       <section className="analytics-section">
@@ -330,9 +450,11 @@ function App() {
                   key={trainingType}
                 >
                   <span>{typeLabels[trainingType]}</span>
+
                   <strong>
                     {analytics.sessionsByType[trainingType] ?? 0}
                   </strong>
+
                   <small>
                     {formatDuration(
                       analytics.durationByType[trainingType] ?? 0,
@@ -430,6 +552,7 @@ function App() {
                         type="button"
                         onClick={() => {
                           setEditingSession(session)
+
                           window.scrollTo({
                             top: 0,
                             behavior: 'smooth',
