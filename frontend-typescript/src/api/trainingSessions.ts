@@ -118,3 +118,56 @@ export async function updateTrainingSession(
 
   return response.json() as Promise<TrainingSession>
 }
+
+export async function downloadTrainingSessionsCsv():
+  Promise<Blob> {
+  const response = await fetch(`${endpoint}/export.csv`)
+
+  if (!response.ok) {
+    throw new Error(
+      'Der CSV-Export konnte nicht heruntergeladen werden.',
+    )
+  }
+
+  return response.blob()
+}
+
+export interface TrainingSessionCsvImportResult {
+  importedSessions: number
+  processedRows: number
+}
+
+export async function importTrainingSessionsCsv(
+  file: File,
+): Promise<TrainingSessionCsvImportResult> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await fetch(`${endpoint}/import.csv`, {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    let message =
+      'Die CSV-Datei konnte nicht importiert werden.'
+
+    try {
+      const errorResponse = (await response.json()) as {
+        detail?: string
+        message?: string
+      }
+
+      message =
+        errorResponse.detail ??
+        errorResponse.message ??
+        message
+    } catch {
+      // Die Standardmeldung bleibt erhalten.
+    }
+
+    throw new Error(message)
+  }
+
+  return response.json() as Promise<TrainingSessionCsvImportResult>
+}

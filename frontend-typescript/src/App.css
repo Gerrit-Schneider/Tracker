@@ -1297,3 +1297,146 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* CSV-Datenaustausch */
+
+.data-transfer-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 28px;
+  border: 1px solid #cbdbe8;
+  border-radius: 24px;
+  background: linear-gradient(
+    135deg,
+    #f4f9ff,
+    #ffffff
+  );
+  box-shadow: 0 18px 50px rgb(34 65 45 / 7%);
+}
+
+.data-transfer-section h2 {
+  margin-bottom: 8px;
+}
+
+.data-transfer-description {
+  max-width: 620px;
+  margin: 0;
+  color: #59675f;
+}
+
+.export-button {
+  flex: 0 0 auto;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #2258a5;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.export-button:hover {
+  background: #194581;
+}
+
+.export-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.data-transfer-section .form-error {
+  flex-basis: 100%;
+}
+
+@media (max-width: 700px) {
+  .data-transfer-section {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 20px;
+  }
+}
+
+.data-transfer-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.data-transfer-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+}
+
+.import-controls {
+  display: grid;
+  gap: 8px;
+}
+
+.csv-file-label {
+  display: grid;
+  gap: 7px;
+  color: #405047;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.csv-file-label input {
+  max-width: 260px;
+  padding: 8px;
+  border: 1px solid #cbd7cf;
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.selected-file {
+  max-width: 260px;
+  overflow: hidden;
+  color: #59675f;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-button {
+  width: fit-content;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #286441;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.import-button:hover {
+  background: #1d5033;
+}
+
+.import-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.transfer-message {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.import-success {
+  color: #1f6b3d;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .data-transfer-section {
+    grid-template-columns: 1fr;
+  }
+
+  .data-transfer-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

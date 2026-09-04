@@ -20,6 +20,7 @@ import {
 import { Pagination } from './components/Pagination'
 import { ProgressCharts } from './components/ProgressCharts'
 import { SportAnalytics } from './components/SportAnalytics'
+import { TrainingDataTransfer } from './components/TrainingDataTransfer'
 import { TrainingGoalForm } from './components/TrainingGoalForm'
 import { TrainingGoalList } from './components/TrainingGoalList'
 import { TrainingSessionDetails } from './components/TrainingSessionDetails'
@@ -288,6 +289,17 @@ function App() {
     }
   }
 
+  function handleTrainingImported() {
+    if (page === 0) {
+      void loadSessions(0, appliedFilters)
+    } else {
+      setPage(0)
+    }
+
+    void loadAnalytics()
+    void loadGoals()
+  }
+
   function handleGoalCreated(createdGoal: TrainingGoal) {
     setGoals((currentGoals) =>
       [createdGoal, ...currentGoals].sort(
@@ -355,6 +367,7 @@ function App() {
       <header className="hero">
         <p className="eyebrow">PeakProgress</p>
         <h1>Deine sportliche Entwicklung</h1>
+
         <p className="subtitle">
           Laufen, Bouldern und Krafttraining an einem Ort.
         </p>
@@ -385,6 +398,10 @@ function App() {
         deletingId={deletingGoalId}
         onEdit={handleGoalEdit}
         onDelete={(id) => void handleGoalDeleted(id)}
+      />
+
+      <TrainingDataTransfer
+        onImported={handleTrainingImported}
       />
 
       <section className="analytics-section">
@@ -424,6 +441,7 @@ function App() {
 
               <article className="metric-card">
                 <span>Trainingszeit insgesamt</span>
+
                 <strong>
                   {formatDuration(
                     analytics.totalDurationMinutes,
@@ -433,6 +451,7 @@ function App() {
 
               <article className="metric-card">
                 <span>Durchschnittliche Dauer</span>
+
                 <strong>
                   {analytics.averageDurationMinutes.toLocaleString(
                     'de-DE',
@@ -512,6 +531,7 @@ function App() {
         {!loading && !error && sessions.length === 0 && (
           <div className="empty-state">
             <h3>Keine Trainingseinheiten gefunden</h3>
+
             <p>
               Passe deine Filter an oder trage eine neue Einheit
               ein.
